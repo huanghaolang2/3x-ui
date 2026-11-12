@@ -3,6 +3,8 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile
+    image: 3xui:local
+    pull_policy: build
     container_name: 3xui_app
     # hostname: yourhostname <- optional
     # Optional hard memory cap. When set, the panel derives its Go soft limit
@@ -39,25 +41,15 @@ services:
       # XUI_PPROF: "true"           # expose pprof on 127.0.0.1:6060 for profiling
       # XUI_INIT_WEB_BASE_PATH: "/"
       # XUI_PORT: "8080"
-      # To use PostgreSQL instead of the default SQLite, run:
-      #   docker compose --profile postgres up -d
-      # and uncomment the two lines below.
-      # XUI_DB_TYPE: "postgres"
-      # XUI_DB_DSN: "postgres://xui:xui@postgres:5432/xui?sslmode=disable"
+      # External PostgreSQL only — set XUI_DB_DSN in .env (required at deploy).
+      # Example: postgres://user:password@db.example.com:5432/xui?sslmode=disable
+      # From a container, localhost is this container; use the database host's
+      # real address (or host.docker.internal if Postgres is on the Docker host).
+      XUI_DB_TYPE: ${XUI_DB_TYPE:-postgres}
+      XUI_DB_DSN: ${XUI_DB_DSN}
     tty: true
     ports:
       # When XUI_PORT is set, publish the same container port (for example "8080:8080").
       - "2053:2053"
     restart: unless-stopped
 
-  postgres:
-    image: postgres:16-alpine
-    container_name: 3xui_postgres
-    profiles: ["postgres"]
-    environment:
-      POSTGRES_USER: xui
-      POSTGRES_PASSWORD: xui
-      POSTGRES_DB: xui
-    volumes:
-      - $PWD/pgdata/:/var/lib/postgresql/data
-    restart: unless-stopped

@@ -100,3 +100,21 @@ build-storybook: ## Build the static Storybook (compile-checks all stories)
 .PHONY: verify
 verify: gen-check lint format-check typecheck test build build-storybook docs-openapi-check ## Full local gate (mirrors CI)
 	@echo "verify: OK"
+
+# Docker deploy against an external PostgreSQL (set XUI_DB_DSN in .env).
+# `build` above compiles the frontend and Go binary for CI (`make verify`).
+
+COMPOSE ?= docker compose
+
+.PHONY: docker-build
+docker-build: ## Build the 3x-ui Docker image from the local Dockerfile
+	$(COMPOSE) build 3xui
+
+.PHONY: restart
+restart: docker-build ## Redeploy with the latest built image (external PostgreSQL)
+	@if ! grep -qE '^XUI_DB_DSN=.+' .env 2>/dev/null; then \
+		echo "Set XUI_DB_DSN in .env to your external PostgreSQL (see .env.example)."; \
+		exit 1; \
+	fi
+	$(COMPOSE) up -d --force-recreate --remove-orphans 3xui
+
